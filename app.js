@@ -1,5 +1,11 @@
 
 (() => {
+  "use strict";
+
+  // ==========================================
+  // 1. CONFIGURAÇÃO E CONEXÃO COM SUPABASE
+  // ==========================================
+
   const cfg = window.MAXPLUS_CONFIG || {};
 
   const configured = Boolean(
@@ -19,28 +25,105 @@
       );
     }
   } catch (error) {
-    console.error("Erro ao conectar Supabase:", error);
+    console.error("Erro ao iniciar Supabase:", error);
   }
+
+  // ==========================================
+  // 2. CONTEÚDO PADRÃO
+  // ==========================================
 
   const defaults = {
     title: "Filmes, séries e futebol ao vivo em um só lugar",
-    subtitle: "Milhares de opções de entretenimento para assistir nos seus dispositivos favoritos.",
+
+    subtitle:
+      "Milhares de opções de entretenimento para assistir nos seus dispositivos favoritos.",
+
     whatsapp: cfg.WHATSAPP || "5511940802230",
+
     cards: [
-      {type:"filmes",tag:"Lançamento",title:"Filme em destaque 1",desc:"Lançamento 2026 · Ação",image:""},
-      {type:"filmes",tag:"Em alta",title:"Filme em destaque 2",desc:"Sucesso 2026 · Aventura",image:""},
-      {type:"filmes",tag:"Novo",title:"Filme em destaque 3",desc:"Estreia · Ficção",image:""},
-      {type:"series",tag:"Nova temporada",title:"Série em destaque 1",desc:"Nova temporada · Drama",image:""},
-      {type:"series",tag:"Maratone",title:"Série em destaque 2",desc:"Todos os episódios · Suspense",image:""},
-      {type:"series",tag:"Estreia",title:"Série em destaque 3",desc:"Estreia · Ação",image:""},
-      {type:"jogos",tag:"Ao vivo hoje",title:"Time A x Time B",desc:"Hoje · 21h30 · Campeonato",image:""},
-      {type:"jogos",tag:"Hoje",title:"Time C x Time D",desc:"Hoje · 19h00 · Campeonato",image:""}
+      {
+        type: "filmes",
+        tag: "Lançamento",
+        title: "Filme em destaque 1",
+        desc: "Lançamento 2026 · Ação",
+        image: ""
+      },
+      {
+        type: "filmes",
+        tag: "Em alta",
+        title: "Filme em destaque 2",
+        desc: "Sucesso 2026 · Aventura",
+        image: ""
+      },
+      {
+        type: "filmes",
+        tag: "Novo",
+        title: "Filme em destaque 3",
+        desc: "Estreia · Ficção",
+        image: ""
+      },
+      {
+        type: "series",
+        tag: "Nova temporada",
+        title: "Série em destaque 1",
+        desc: "Nova temporada · Drama",
+        image: ""
+      },
+      {
+        type: "series",
+        tag: "Maratone",
+        title: "Série em destaque 2",
+        desc: "Todos os episódios · Suspense",
+        image: ""
+      },
+      {
+        type: "series",
+        tag: "Estreia",
+        title: "Série em destaque 3",
+        desc: "Estreia · Ação",
+        image: ""
+      },
+      {
+        type: "jogos",
+        tag: "Ao vivo hoje",
+        title: "Time A x Time B",
+        desc: "Hoje · 21h30 · Campeonato",
+        image: ""
+      },
+      {
+        type: "jogos",
+        tag: "Hoje",
+        title: "Time C x Time D",
+        desc: "Hoje · 19h00 · Campeonato",
+        image: ""
+      }
     ],
+
     plans: [
-      {name:"Mensal",price:"35,00",period:"1 mês de acesso",featured:false},
-      {name:"Trimestral",price:"95,00",period:"3 meses de acesso",featured:false},
-      {name:"Semestral",price:"180,00",period:"6 meses de acesso",featured:true},
-      {name:"Anual",price:"295,00",period:"12 meses de acesso",featured:false}
+      {
+        name: "Mensal",
+        price: "35,00",
+        period: "1 mês de acesso",
+        featured: false
+      },
+      {
+        name: "Trimestral",
+        price: "95,00",
+        period: "3 meses de acesso",
+        featured: false
+      },
+      {
+        name: "Semestral",
+        price: "180,00",
+        period: "6 meses de acesso",
+        featured: true
+      },
+      {
+        name: "Anual",
+        price: "295,00",
+        period: "12 meses de acesso",
+        featured: false
+      }
     ]
   };
 
@@ -48,79 +131,158 @@
 
   let data = clone(defaults);
   let user = null;
-  let editorTab = "conteudo";
   let saving = false;
+  let editorTab = "conteudo";
 
   const $ = id => document.getElementById(id);
 
-  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  }[c]));
+  // ==========================================
+  // 3. FUNÇÕES AUXILIARES
+  // ==========================================
 
-  function toast(msg) {
-    const t = $("toast");
-    if (!t) {
-      alert(msg);
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[char]));
+  }
+
+  function toast(message) {
+    const element = $("toast");
+
+    if (!element) {
+      console.log(message);
       return;
     }
 
-    t.textContent = msg;
-    t.classList.add("show");
+    element.textContent = message;
+    element.classList.add("show");
 
     setTimeout(() => {
-      t.classList.remove("show");
+      element.classList.remove("show");
     }, 4000);
   }
 
-  function setStatus(msg) {
-    const el = $("save-status");
-    if (el) el.textContent = msg;
+  function setStatus(message) {
+    const element = $("save-status");
+
+    if (element) {
+      element.textContent = message;
+    }
   }
 
-  function wa(text) {
-    return `https://wa.me/${String(data.whatsapp || defaults.whatsapp).replace(/\D/g,"")}?text=${encodeURIComponent(text)}`;
+  function wa(message) {
+    const number = String(
+      data.whatsapp || defaults.whatsapp
+    ).replace(/\D/g, "");
+
+    return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
   }
+
+  function normalizeContent(content) {
+    const result = {
+      ...clone(defaults),
+      ...(content || {})
+    };
+
+    // Recupera os modelos padrão quando as listas
+    // estiverem ausentes ou vazias.
+    result.cards =
+      Array.isArray(content?.cards) && content.cards.length > 0
+        ? content.cards.map(card => ({
+            type: "filmes",
+            tag: "",
+            title: "",
+            desc: "",
+            image: "",
+            ...card
+          }))
+        : clone(defaults.cards);
+
+    result.plans =
+      Array.isArray(content?.plans) && content.plans.length > 0
+        ? content.plans.map(plan => ({
+            name: "",
+            price: "",
+            period: "",
+            featured: false,
+            ...plan
+          }))
+        : clone(defaults.plans);
+
+    result.whatsapp = result.whatsapp || defaults.whatsapp;
+
+    return result;
+  }
+
+  // ==========================================
+  // 4. RENDERIZAÇÃO DA PÁGINA PÚBLICA
+  // ==========================================
 
   function renderCards(type = "filmes") {
     const grid = $("poster-grid");
+
     if (!grid) return;
 
-    const cards = data.cards.filter(c => c.type === type);
+    const cards = data.cards.filter(card => card.type === type);
 
-    grid.innerHTML = cards.map(c => `
+    grid.innerHTML = cards.map(card => `
       <article class="poster">
-        ${c.image
-          ? `<img src="${esc(c.image)}" alt="">`
-          : `<div class="poster-img-placeholder"></div>`
+
+        ${
+          card.image
+            ? `<img src="${esc(card.image)}" alt="${esc(card.title)}">`
+            : `<div class="poster-img-placeholder"></div>`
         }
+
         <div class="poster-info">
-          <small>${esc(c.tag)}</small>
-          <h3>${esc(c.title)}</h3>
-          <p>${esc(c.desc)}</p>
+          <small>${esc(card.tag)}</small>
+          <h3>${esc(card.title)}</h3>
+          <p>${esc(card.desc)}</p>
         </div>
+
       </article>
     `).join("") || '<p class="hint">Nenhum destaque cadastrado.</p>';
   }
 
   function renderPlans() {
     const grid = $("plan-grid");
+
     if (!grid) return;
 
-    grid.innerHTML = data.plans.map(p => `
-      <article class="plan ${p.featured ? "featured" : ""}">
-        ${p.featured ? '<span class="tag">MELHOR CUSTO</span>' : ""}
-        <h3>${esc(p.name)}</h3>
-        <div class="price">R$ ${esc(p.price)}</div>
+    grid.innerHTML = data.plans.map(plan => `
+      <article class="plan ${plan.featured ? "featured" : ""}">
+
+        ${
+          plan.featured
+            ? '<span class="tag">MELHOR CUSTO</span>'
+            : ""
+        }
+
+        <h3>${esc(plan.name)}</h3>
+
+        <div class="price">
+          R$ ${esc(plan.price)}
+        </div>
+
         <ul>
-          <li>${esc(p.period)}</li>
+          <li>${esc(plan.period)}</li>
           <li>Consulte os detalhes</li>
           <li>Suporte pelo WhatsApp</li>
         </ul>
-        <a class="btn" href="${wa(`Olá! Quero informações sobre o plano ${p.name} do Max Plus (R$ ${p.price}).`)}" target="_blank" rel="noopener">Assinar</a>
+
+        <a
+          class="btn"
+          href="${wa(`Olá! Quero informações sobre o plano ${plan.name} do Max Plus (R$ ${plan.price}).`)}"
+          target="_blank"
+          rel="noopener"
+        >
+          Assinar
+        </a>
+
       </article>
     `).join("");
   }
@@ -137,76 +299,200 @@
   }
 
   function ensureHeroIds() {
-    const h = document.querySelector(".hero h1");
-    const p = document.querySelector(".hero-copy>p");
+    const title = document.querySelector(".hero h1");
+    const subtitle = document.querySelector(".hero-copy>p");
 
-    if (h) h.id = "hero-title";
-    if (p) p.id = "hero-subtitle";
+    if (title) title.id = "hero-title";
+    if (subtitle) subtitle.id = "hero-subtitle";
   }
+
+  // ==========================================
+  // 5. ABAS DO PAINEL ADMINISTRATIVO
+  // ==========================================
 
   function setEditorTab(tab) {
     editorTab = tab;
 
-    $("editor-content")?.classList.toggle("hidden", tab !== "conteudo");
-    $("editor-plans")?.classList.toggle("hidden", tab !== "planos");
+    const content = $("editor-content");
+    const plans = $("editor-plans");
 
-    document.querySelectorAll("[data-editor-tab]").forEach(b => {
-      b.classList.toggle("active", b.dataset.editorTab === tab);
+    if (content) {
+      content.classList.toggle("hidden", tab !== "conteudo");
+    }
+
+    if (plans) {
+      plans.classList.toggle("hidden", tab !== "planos");
+    }
+
+    document.querySelectorAll("[data-editor-tab]").forEach(button => {
+      button.classList.toggle(
+        "active",
+        button.dataset.editorTab === tab
+      );
     });
   }
 
-  function renderEditor() {
-    if ($("edit-title")) $("edit-title").value = data.title;
-    if ($("edit-subtitle")) $("edit-subtitle").value = data.subtitle;
-    if ($("edit-whatsapp")) $("edit-whatsapp").value = data.whatsapp;
+  // ==========================================
+  // 6. MONTAGEM DOS CAMPOS DE EDIÇÃO
+  // ==========================================
 
-    $("edit-cards").innerHTML = data.cards.map((c, i) => `
+  function renderEditor() {
+    const title = $("edit-title");
+    const subtitle = $("edit-subtitle");
+    const whatsapp = $("edit-whatsapp");
+    const cardsContainer = $("edit-cards");
+    const plansContainer = $("edit-plans");
+
+    if (title) title.value = data.title;
+    if (subtitle) subtitle.value = data.subtitle;
+    if (whatsapp) whatsapp.value = data.whatsapp;
+
+    if (!cardsContainer || !plansContainer) {
+      console.error(
+        "Não foram encontrados os containers edit-cards ou edit-plans no HTML."
+      );
+
+      toast(
+        "Erro ao montar o painel. Verifique a estrutura do index.html."
+      );
+
+      return false;
+    }
+
+    // Campos dos cards
+    cardsContainer.innerHTML = data.cards.map((card, index) => `
       <div class="edit-card">
-        <img id="preview-${i}" src="${esc(c.image || "")}" alt="">
+
+        <img
+          id="preview-${index}"
+          src="${esc(card.image || "")}"
+          alt="${esc(card.title)}"
+        >
+
         <div class="edit-fields">
-          <label>Título
-            <input data-card="${i}" data-field="title" value="${esc(c.title)}">
+
+          <label>
+            Título
+            <input
+              type="text"
+              data-card="${index}"
+              data-field="title"
+              value="${esc(card.title)}"
+            >
           </label>
-          <label>Descrição
-            <input data-card="${i}" data-field="desc" value="${esc(c.desc)}">
+
+          <label>
+            Descrição
+            <input
+              type="text"
+              data-card="${index}"
+              data-field="desc"
+              value="${esc(card.desc)}"
+            >
           </label>
-          <label>Etiqueta
-            <input data-card="${i}" data-field="tag" value="${esc(c.tag)}">
+
+          <label>
+            Etiqueta
+            <input
+              type="text"
+              data-card="${index}"
+              data-field="tag"
+              value="${esc(card.tag)}"
+            >
           </label>
+
           <div>
-            <button type="button" class="file-label" data-choose="${i}">Escolher imagem</button>
-            <input class="file-input" id="file-${i}" type="file" accept="image/*" data-file="${i}">
-            <button type="button" class="tab" data-remove="${i}">Remover imagem</button>
+            <button
+              type="button"
+              class="file-label"
+              data-choose="${index}"
+            >
+              Escolher imagem
+            </button>
+
+            <input
+              class="file-input"
+              id="file-${index}"
+              type="file"
+              accept="image/*"
+              data-file="${index}"
+            >
+
+            <button
+              type="button"
+              class="tab"
+              data-remove="${index}"
+            >
+              Remover imagem
+            </button>
           </div>
+
         </div>
       </div>
     `).join("");
 
-    $("edit-plans").innerHTML = data.plans.map((p, i) => `
+    // Campos dos planos
+    plansContainer.innerHTML = data.plans.map((plan, index) => `
       <div class="edit-card">
+
         <div class="edit-fields" style="grid-column:1/-1">
-          <label>Nome do plano
-            <input data-plan="${i}" data-field="name" value="${esc(p.name)}">
-          </label>
-          <label>Preço (ex.: 35,00)
-            <input data-plan="${i}" data-field="price" value="${esc(p.price)}">
-          </label>
-          <label>Período
-            <input data-plan="${i}" data-field="period" value="${esc(p.period)}">
-          </label>
+
           <label>
-            <input type="checkbox" data-plan-featured="${i}" ${p.featured ? "checked" : ""}>
+            Nome do plano
+            <input
+              type="text"
+              data-plan="${index}"
+              data-field="name"
+              value="${esc(plan.name)}"
+            >
+          </label>
+
+          <label>
+            Preço (ex.: 35,00)
+            <input
+              type="text"
+              data-plan="${index}"
+              data-field="price"
+              value="${esc(plan.price)}"
+            >
+          </label>
+
+          <label>
+            Período
+            <input
+              type="text"
+              data-plan="${index}"
+              data-field="period"
+              value="${esc(plan.period)}"
+            >
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              data-plan-featured="${index}"
+              ${plan.featured ? "checked" : ""}
+            >
             Destacar como melhor custo
           </label>
+
         </div>
       </div>
     `).join("");
+
+    setEditorTab(editorTab);
+
+    return true;
   }
+
+  // ==========================================
+  // 7. CARREGAMENTO DOS DADOS
+  // ==========================================
 
   async function loadData() {
     if (!sb) {
-      toast("Supabase não está conectado. Confira o config.js.");
-      return;
+      console.error("Supabase não conectado.");
+      return false;
     }
 
     try {
@@ -218,25 +504,31 @@
 
       if (error) throw error;
 
-      if (row?.content) {
-        data = {
-          ...defaults,
-          ...row.content,
-          cards: Array.isArray(row.content.cards)
-            ? row.content.cards
-            : clone(defaults.cards),
-          plans: Array.isArray(row.content.plans)
-            ? row.content.plans
-            : clone(defaults.plans)
-        };
-
-        renderPublic();
+      if (row && row.content) {
+        data = normalizeContent(row.content);
+      } else {
+        data = clone(defaults);
       }
+
+      renderPublic();
+
+      return true;
+
     } catch (error) {
       console.error("Erro ao carregar conteúdo:", error);
-      toast("Erro ao carregar dados: " + (error.message || "Falha de conexão"));
+
+      toast(
+        "Erro ao carregar dados: " +
+        (error.message || "Falha de conexão")
+      );
+
+      return false;
     }
   }
+
+  // ==========================================
+  // 8. ENVIO DE IMAGENS
+  // ==========================================
 
   async function uploadImage(file, index) {
     if (!sb) {
@@ -244,7 +536,7 @@
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
+    if (!file || !file.type.startsWith("image/")) {
       toast("Selecione um arquivo de imagem.");
       return;
     }
@@ -257,11 +549,12 @@
     try {
       toast("Enviando imagem...");
 
-      const ext = (file.name.split(".").pop() || "jpg")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
+      const extension = (
+        file.name.split(".").pop() || "jpg"
+      ).toLowerCase().replace(/[^a-z0-9]/g, "");
 
-      const path = `destaques/${Date.now()}-${index}.${ext}`;
+      const path =
+        `destaques/${Date.now()}-${index}.${extension}`;
 
       const { error } = await sb.storage
         .from("maxplus-images")
@@ -272,21 +565,81 @@
 
       if (error) throw error;
 
-      const { data: pub } = sb.storage
+      const { data: publicData } = sb.storage
         .from("maxplus-images")
         .getPublicUrl(path);
 
-      data.cards[index].image = pub.publicUrl;
+      data.cards[index].image = publicData.publicUrl;
 
-      const img = $(`preview-${index}`);
-      if (img) img.src = pub.publicUrl;
+      const preview = $(`preview-${index}`);
 
-      toast("Imagem carregada. Clique em Salvar e publicar.");
+      if (preview) {
+        preview.src = publicData.publicUrl;
+      }
+
+      toast(
+        "Imagem carregada. Clique em Salvar e publicar."
+      );
+
     } catch (error) {
       console.error("Erro no upload:", error);
-      toast("Falha no upload: " + (error.message || "Erro desconhecido"));
+
+      toast(
+        "Falha no upload: " +
+        (error.message || "Erro desconhecido")
+      );
     }
   }
+
+  // ==========================================
+  // 9. COLETA DOS CAMPOS ANTES DE PUBLICAR
+  // ==========================================
+
+  function collectEditorData() {
+    const title = $("edit-title");
+    const subtitle = $("edit-subtitle");
+    const whatsapp = $("edit-whatsapp");
+
+    if (!title || !subtitle || !whatsapp) {
+      throw new Error(
+        "Os campos principais do painel não foram encontrados."
+      );
+    }
+
+    data.title = title.value.trim();
+    data.subtitle = subtitle.value.trim();
+    data.whatsapp = whatsapp.value.replace(/\D/g, "");
+
+    document.querySelectorAll("[data-card]").forEach(element => {
+      const index = Number(element.dataset.card);
+      const field = element.dataset.field;
+
+      if (data.cards[index] && field) {
+        data.cards[index][field] = element.value;
+      }
+    });
+
+    document.querySelectorAll("[data-plan]").forEach(element => {
+      const index = Number(element.dataset.plan);
+      const field = element.dataset.field;
+
+      if (data.plans[index] && field) {
+        data.plans[index][field] = element.value;
+      }
+    });
+
+    document.querySelectorAll("[data-plan-featured]").forEach(element => {
+      const index = Number(element.dataset.planFeatured);
+
+      if (data.plans[index]) {
+        data.plans[index].featured = element.checked;
+      }
+    });
+  }
+
+  // ==========================================
+  // 10. SALVAR E PUBLICAR
+  // ==========================================
 
   async function save() {
     if (saving) return;
@@ -303,11 +656,11 @@
 
     saving = true;
 
-    const publishButton = $("publish");
+    const button = $("publish");
 
-    if (publishButton) {
-      publishButton.disabled = true;
-      publishButton.textContent = "Publicando...";
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Publicando...";
     }
 
     setStatus("Verificando acesso...");
@@ -319,38 +672,12 @@
       if (sessionError) throw sessionError;
 
       if (!sessionData?.session) {
-        throw new Error("Sua sessão expirou. Entre novamente.");
+        throw new Error(
+          "Sua sessão expirou. Entre novamente."
+        );
       }
 
-      data.title = $("edit-title").value.trim();
-      data.subtitle = $("edit-subtitle").value.trim();
-      data.whatsapp = $("edit-whatsapp").value.replace(/\D/g, "");
-
-      document.querySelectorAll("[data-card]").forEach(el => {
-        const i = Number(el.dataset.card);
-        const field = el.dataset.field;
-
-        if (data.cards[i] && field) {
-          data.cards[i][field] = el.value;
-        }
-      });
-
-      document.querySelectorAll("[data-plan]").forEach(el => {
-        const i = Number(el.dataset.plan);
-        const field = el.dataset.field;
-
-        if (data.plans[i] && field) {
-          data.plans[i][field] = el.value;
-        }
-      });
-
-      document.querySelectorAll("[data-plan-featured]").forEach(el => {
-        const i = Number(el.dataset.planFeatured);
-
-        if (data.plans[i]) {
-          data.plans[i].featured = el.checked;
-        }
-      });
+      collectEditorData();
 
       setStatus("Gravando no Supabase...");
 
@@ -367,178 +694,270 @@
       renderPublic();
 
       setStatus("Publicado com sucesso!");
+
       toast("Página atualizada para os clientes!");
 
     } catch (error) {
       console.error("Erro ao publicar:", error);
 
-      const message = error?.message || "Erro desconhecido";
+      const message =
+        error?.message || "Erro desconhecido";
 
       setStatus("Falha ao publicar: " + message);
+
       toast("Não foi possível publicar: " + message);
 
     } finally {
       saving = false;
 
-      if (publishButton) {
-        publishButton.disabled = false;
-        publishButton.textContent = "Salvar e publicar";
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Salvar e publicar";
       }
     }
   }
 
-  // Inicialização da página
+  // ==========================================
+  // 11. INICIALIZAÇÃO DA PÁGINA
+  // ==========================================
+
   ensureHeroIds();
 
-  if ($("year")) {
-    $("year").textContent = new Date().getFullYear();
+  const year = $("year");
+
+  if (year) {
+    year.textContent = new Date().getFullYear();
   }
 
   renderPublic();
 
-  document.querySelectorAll("[data-tab]").forEach(b => {
-    b.addEventListener("click", () => {
-      document.querySelectorAll("[data-tab]").forEach(x => {
-        x.classList.toggle("active", x === b);
+  // Abas públicas: Filmes, Séries e Jogos
+  document.querySelectorAll("[data-tab]").forEach(button => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll("[data-tab]").forEach(item => {
+        item.classList.toggle("active", item === button);
       });
 
-      renderCards(b.dataset.tab);
+      renderCards(button.dataset.tab);
     });
   });
 
-  $("trial-form")?.addEventListener("submit", e => {
-    e.preventDefault();
+  // Formulário de teste grátis
+  $("trial-form")?.addEventListener("submit", event => {
+    event.preventDefault();
 
-    const name = $("trial-name").value.trim();
-    const phone = $("trial-phone").value.trim();
+    const name = $("trial-name")?.value.trim() || "";
+    const phone = $("trial-phone")?.value.trim() || "";
 
     window.open(
-      wa(`Olá! Quero solicitar um teste grátis do Max Plus. Nome: ${name}. Meu WhatsApp: ${phone}.`),
+      wa(
+        `Olá! Quero solicitar um teste grátis do Max Plus. Nome: ${name}. Meu WhatsApp: ${phone}.`
+      ),
       "_blank",
       "noopener"
     );
   });
 
+  // Abrir painel privado
   $("admin-open")?.addEventListener("click", () => {
-    $("admin-modal").classList.remove("hidden");
-    $("auth-view").classList.remove("hidden");
-    $("editor-view").classList.add("hidden");
+    $("admin-modal")?.classList.remove("hidden");
+    $("auth-view")?.classList.remove("hidden");
+    $("editor-view")?.classList.add("hidden");
   });
 
+  // Fechar painel
   $("admin-close")?.addEventListener("click", () => {
-    $("admin-modal").classList.add("hidden");
+    $("admin-modal")?.classList.add("hidden");
   });
 
-  $("admin-modal")?.addEventListener("click", e => {
-    if (e.target === $("admin-modal")) {
+  $("admin-modal")?.addEventListener("click", event => {
+    if (event.target === $("admin-modal")) {
       $("admin-modal").classList.add("hidden");
     }
   });
 
-  $("login-form")?.addEventListener("submit", async e => {
-    e.preventDefault();
+  // ==========================================
+  // 12. LOGIN DO ADMINISTRADOR
+  // ==========================================
+
+  $("login-form")?.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const message = $("login-message");
 
     if (!sb) {
-      $("login-message").textContent = "Supabase não configurado. Confira o config.js.";
+      if (message) {
+        message.textContent =
+          "Supabase não configurado. Confira o config.js.";
+      }
+
       return;
     }
 
     try {
-      const { data: res, error } = await sb.auth.signInWithPassword({
-        email: $("login-email").value,
-        password: $("login-password").value
-      });
+      if (message) message.textContent = "Verificando acesso...";
+
+      const { data: result, error } =
+        await sb.auth.signInWithPassword({
+          email: $("login-email").value,
+          password: $("login-password").value
+        });
 
       if (error) throw error;
 
-      user = res.user;
+      user = result.user;
 
-      const { data: allowed, error: ae } = await sb
+      const { data: allowed, error: adminError } = await sb
         .from("admin_users")
         .select("user_id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (ae) throw ae;
+      if (adminError) throw adminError;
 
       if (!allowed) {
         await sb.auth.signOut();
         user = null;
-        throw new Error("Esta conta não está autorizada como administradora.");
+
+        throw new Error(
+          "Esta conta não está autorizada como administradora."
+        );
       }
 
       await loadData();
-      renderEditor();
 
-      $("auth-view").classList.add("hidden");
-      $("editor-view").classList.remove("hidden");
+      const editorReady = renderEditor();
+
+      if (!editorReady) {
+        throw new Error(
+          "Não foi possível montar os campos do painel. Verifique o HTML."
+        );
+      }
+
+      $("auth-view")?.classList.add("hidden");
+      $("editor-view")?.classList.remove("hidden");
+
+      if (message) message.textContent = "";
+
+      toast("Acesso administrativo autorizado!");
 
     } catch (error) {
       console.error("Erro no login:", error);
-      $("login-message").textContent = error.message || "Falha ao entrar.";
+
+      if (message) {
+        message.textContent =
+          error.message || "Falha ao entrar.";
+      }
     }
   });
+
+  // ==========================================
+  // 13. SAIR DO PAINEL
+  // ==========================================
 
   $("logout")?.addEventListener("click", async () => {
-    if (sb) await sb.auth.signOut();
+    if (sb) {
+      await sb.auth.signOut();
+    }
 
     user = null;
-    $("editor-view").classList.add("hidden");
-    $("auth-view").classList.remove("hidden");
+
+    $("editor-view")?.classList.add("hidden");
+    $("auth-view")?.classList.remove("hidden");
   });
 
-  document.querySelectorAll("[data-editor-tab]").forEach(b => {
-    b.addEventListener("click", () => setEditorTab(b.dataset.editorTab));
+  // ==========================================
+  // 14. ABAS DE EDIÇÃO
+  // ==========================================
+
+  document.querySelectorAll("[data-editor-tab]").forEach(button => {
+    button.addEventListener("click", () => {
+      setEditorTab(button.dataset.editorTab);
+    });
   });
 
-  $("edit-cards")?.addEventListener("change", e => {
-    const i = e.target.dataset.file;
+  // ==========================================
+  // 15. ESCOLHER E REMOVER IMAGENS
+  // ==========================================
 
-    if (i !== undefined && e.target.files?.[0]) {
-      uploadImage(e.target.files[0], Number(i));
+  $("edit-cards")?.addEventListener("change", event => {
+    const index = event.target.dataset.file;
+
+    if (
+      index !== undefined &&
+      event.target.files &&
+      event.target.files[0]
+    ) {
+      uploadImage(
+        event.target.files[0],
+        Number(index)
+      );
     }
   });
 
-  $("edit-cards")?.addEventListener("click", e => {
-    const choose = e.target.dataset.choose;
+  $("edit-cards")?.addEventListener("click", event => {
+    const choose = event.target.dataset.choose;
 
     if (choose !== undefined) {
       const input = $(`file-${choose}`);
-      if (input) input.click();
+
+      if (input) {
+        input.click();
+      }
+
       return;
     }
 
-    const i = e.target.dataset.remove;
+    const remove = event.target.dataset.remove;
 
-    if (i !== undefined) {
-      data.cards[Number(i)].image = "";
+    if (remove !== undefined) {
+      const index = Number(remove);
 
-      const img = $(`preview-${i}`);
-      if (img) img.removeAttribute("src");
+      if (!data.cards[index]) return;
 
-      toast("Imagem removida. Publique para confirmar.");
+      data.cards[index].image = "";
+
+      const preview = $(`preview-${index}`);
+
+      if (preview) {
+        preview.removeAttribute("src");
+      }
+
+      toast(
+        "Imagem removida da edição. Publique para confirmar."
+      );
     }
   });
 
-  // Evento de publicação
+  // ==========================================
+  // 16. BOTÃO SALVAR E PUBLICAR
+  // ==========================================
+
   const publishButton = $("publish");
 
   if (publishButton) {
     publishButton.type = "button";
 
-    publishButton.addEventListener("click", e => {
-      e.preventDefault();
-      e.stopPropagation();
+    publishButton.addEventListener("click", event => {
+      event.preventDefault();
       save();
-    }, true);
+    });
   } else {
-    console.error('Botão com id="publish" não encontrado no HTML.');
+    console.error(
+      'Botão com id="publish" não encontrado no HTML.'
+    );
   }
+
+  // ==========================================
+  // 17. CARREGAMENTO INICIAL
+  // ==========================================
 
   if (configured && sb) {
     loadData();
   } else {
-    console.error("Configuração do Supabase ausente ou biblioteca não carregada.");
+    console.error(
+      "Supabase ausente ou biblioteca não carregada. Confira config.js e index.html."
+    );
   }
 
 })();
