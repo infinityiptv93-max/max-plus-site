@@ -1,64 +1,41 @@
-function syncEditorToData() {
-  if ($("edit-title")) data.title = $("edit-title").value.trim();
-  if ($("edit-subtitle")) data.subtitle = $("edit-subtitle").value.trim();
-  if ($("edit-whatsapp")) data.whatsapp = $("edit-whatsapp").value.replace(/\D/g, "");
+(() => {
+  const cfg = window.MAXPLUS_CONFIG || {};
 
-  document.querySelectorAll("[data-card]").forEach(el => {
-    const i = Number(el.dataset.card), f = el.dataset.field;
-    if (data.cards[i] && f) data.cards[i][f] = el.value;
-  });
-  document.querySelectorAll("[data-plan]").forEach(el => {
-    const i = Number(el.dataset.plan), f = el.dataset.field;
-    if (data.plans[i] && f) data.plans[i][f] = el.value;
-  });
-  document.querySelectorAll("[data-plan-featured]").forEach(el => {
-    const i = Number(el.dataset.planFeatured);
-    if (data.plans[i]) data.plans[i].featured = el.checked;
-  });
-}
+  const configured = Boolean(
+    cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
+    !cfg.SUPABASE_URL.includes("COLE_AQUI") &&
+    !cfg.SUPABASE_ANON_KEY.includes("COLE_AQUI")
+  );
 
-function addCard(type) {
-  syncEditorToData();
-  const presets = {
-    filmes: {tag:"Novo", title:"Novo filme", desc:"Ano · Gênero"},
-    series: {tag:"Nova temporada", title:"Nova série", desc:"Temporada · Gênero"},
-    jogos:  {tag:"Hoje", title:"Time A x Time B", desc:"Hoje · 21h00 · Campeonato"}
+  let sb = null;
+  try {
+    if (configured && window.supabase) {
+      sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+    }
+  } catch (error) {
+    console.error("Erro ao conectar Supabase:", error);
+  }
+
+  const defaults = {
+    title: "Filmes, séries e futebol ao vivo em um só lugar",
+    subtitle: "Milhares de opções de entretenimento para assistir nos seus dispositivos favoritos.",
+    whatsapp: cfg.WHATSAPP || "5511940802230",
+    cards: [
+      {type:"filmes",tag:"Lançamento",title:"Filme em destaque 1",desc:"Lançamento 2026 · Ação",image:""},
+      {type:"filmes",tag:"Em alta",title:"Filme em destaque 2",desc:"Sucesso 2026 · Aventura",image:""},
+      {type:"filmes",tag:"Novo",title:"Filme em destaque 3",desc:"Estreia · Ficção",image:""},
+      {type:"series",tag:"Nova temporada",title:"Série em destaque 1",desc:"Nova temporada · Drama",image:""},
+      {type:"series",tag:"Maratone",title:"Série em destaque 2",desc:"Todos os episódios · Suspense",image:""},
+      {type:"series",tag:"Estreia",title:"Série em destaque 3",desc:"Estreia · Ação",image:""},
+      {type:"jogos",tag:"Ao vivo hoje",title:"Time A x Time B",desc:"Hoje · 21h30 · Campeonato",image:""},
+      {type:"jogos",tag:"Hoje",title:"Time C x Time D",desc:"Hoje · 19h00 · Campeonato",image:""}
+    ],
+    plans: [
+      {name:"Mensal",price:"35,00",period:"1 mês de acesso",featured:false},
+      {name:"Trimestral",price:"95,00",period:"3 meses de acesso",featured:false},
+      {name:"Semestral",price:"180,00",period:"6 meses de acesso",featured:true},
+      {name:"Anual",price:"295,00",period:"12 meses de acesso",featured:false}
+    ]
   };
-  data.cards.push({ type, image:"", ...presets[type] });
-  renderEditor();
-  renderCards(publicTab);
-  const last = document.querySelector("#edit-cards .edit-card:last-child");
-  if (last) last.scrollIntoView({ behavior:"smooth", block:"center" });
-  toast("Item adicionado. Edite e clique em Salvar e publicar.");
-}
 
-function removeCard(i) {
-  if (!confirm("Remover este item do catálogo?")) return;
-  syncEditorToData();
-  data.cards.splice(i, 1);
-  renderEditor();
-  renderCards(publicTab);
-}
-
-function clearGames() {
-  if (!confirm("Remover TODOS os jogos do dia?")) return;
-  syncEditorToData();
-  data.cards = data.cards.filter(c => c.type !== "jogos");
-  renderEditor();
-  renderCards(publicTab);
-}
-
-function addPlan() {
-  syncEditorToData();
-  data.plans.push({ name:"Novo plano", price:"0,00", period:"1 mês de acesso", featured:false });
-  renderEditor();
-  renderPlans();
-}
-
-function removePlan(i) {
-  if (!confirm("Remover este plano?")) return;
-  syncEditorToData();
-  data.plans.splice(i, 1);
-  renderEditor();
-  renderPlans();
-}
+  const clone = obj => JSON.parse(JSON.stringify(obj));
